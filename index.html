@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pdfsum — resume archivos PDF en tu navegador</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #ede4cd;
+    --paper-line: #c8b688;
+    --desk: #273229;
+    --desk-dark: #1b241d;
+    --ink: #241f16;
+    --ink-soft: #635a45;
+    --pen: #a13a2d;
+    --highlight: #eccb4a;
+    --highlight-ink: #4a3c0a;
+    --card-shadow: rgba(20, 24, 20, 0.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, var(--desk) 0%, var(--desk-dark) 100%);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--pen); }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 3px solid var(--pen);
+    outline-offset: 2px;
+  }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 24px 80px; }
+
+  header { padding: 56px 24px 40px; text-align: center; }
+
+  .tab {
+    display: inline-block;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-bottom: none;
+    padding: 6px 22px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    border-radius: 4px 4px 0 0;
+  }
+
+  .desk-sheet {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 40px 32px 32px;
+    box-shadow: 0 14px 30px var(--card-shadow);
+  }
+
+  h1 {
+    font-family: 'Source Serif 4', serif;
+    font-weight: 700;
+    font-size: clamp(34px, 6vw, 54px);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .tagline {
+    font-size: 15px;
+    color: var(--ink-soft);
+    max-width: 48ch;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .section-head { display: flex; align-items: baseline; gap: 14px; margin: 56px 0 22px; }
+
+  .section-head .num {
+    font-family: 'Source Serif 4', serif; font-size: 13px; color: var(--paper);
+    background: var(--pen); padding: 3px 9px; border-radius: 2px;
+  }
+
+  .section-head h2 {
+    font-family: 'Source Serif 4', serif; color: var(--paper); font-size: 22px;
+    margin: 0; font-weight: 600;
+  }
+
+  .section-head .rule { flex: 1; height: 1px; background: rgba(237, 228, 205, 0.28); }
+
+  /* ---------- upload zone ---------- */
+  .intake {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 26px 28px 24px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+  }
+
+  .dropzone {
+    border: 2px dashed var(--paper-line);
+    border-radius: 2px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: #fbf7ea;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .dropzone.drag { border-color: var(--pen); background: #f7ecd8; }
+
+  .dropzone p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .dropzone p.file-name { color: var(--ink); font-weight: 500; margin-top: 6px; }
+
+  .dropzone input[type="file"] { display: none; }
+
+  .mode-tabs { display: flex; gap: 8px; margin-top: 18px; }
+  .mode-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 7px 14px;
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+  .mode-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .ai-key-row { display: flex; flex-direction: column; gap: 6px; min-width: 220px; flex: 1; }
+  .ai-key-row input[type="password"] {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .ai-note {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-top: 10px;
+  }
+
+  .ai-summary { padding: 24px 26px; }
+  .ai-summary p {
+    font-family: 'Source Serif 4', serif;
+    font-size: 15.5px;
+    line-height: 1.85;
+    color: var(--ink);
+    margin: 0 0 16px;
+  }
+  .ai-summary p:last-child { margin-bottom: 0; }
+
+  .controls {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    margin-top: 18px;
+  }
+
+  .control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .control label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .control select, .control input[type="range"] {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #fbf7ea;
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .control .range-row { display: flex; align-items: center; gap: 10px; }
+  .control .range-row span { font-size: 13px; min-width: 18px; text-align: center; }
+
+  .row-below {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 2px;
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s ease;
+  }
+
+  .btn.primary { background: var(--ink); color: var(--paper); }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+  .btn.small { font-size: 11px; padding: 6px 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn:hover, .card:hover { transform: none; }
+  }
+
+  .note {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 16px;
+    line-height: 1.6;
+    border-top: 1px dashed var(--paper-line);
+    padding-top: 12px;
+  }
+
+  /* ---------- output ---------- */
+  #output { margin-top: 22px; display: none; }
+
+  .stats-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    padding: 14px 18px;
+    box-shadow: 0 6px 14px var(--card-shadow);
+    margin-bottom: 16px;
+    font-size: 12.5px;
+  }
+
+  .stats-row .stat b { display: block; font-size: 18px; font-family: 'Source Serif 4', serif; }
+  .stats-row .stat span { color: var(--ink-soft); text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; }
+
+  .manuscript {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+    padding: 4px 0;
+  }
+
+  .highlight-line {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px dashed var(--paper-line);
+    align-items: start;
+  }
+
+  .highlight-line:last-child { border-bottom: none; }
+
+  .highlight-line .tag {
+    font-family: 'Source Serif 4', serif;
+    font-size: 12px;
+    color: var(--pen);
+    padding-top: 3px;
+  }
+
+  .highlight-line .txt {
+    font-size: 14.5px;
+    line-height: 1.75;
+    color: var(--ink);
+  }
+
+  .highlight-line .txt mark {
+    background: var(--highlight);
+    color: var(--highlight-ink);
+    padding: 1px 2px;
+  }
+
+  .output-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+  /* ---------- card catalog ---------- */
+  .catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px; }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 3px;
+    padding: 18px 18px 24px;
+    box-shadow: 0 6px 14px var(--card-shadow);
+    transition: transform 0.15s ease;
+  }
+
+  .card:hover { transform: translateY(-3px); }
+  .card .cat-no { font-size: 10px; color: var(--ink-soft); letter-spacing: 0.08em; margin: 0 0 10px; }
+  .card h3 { font-family: 'Source Serif 4', serif; font-size: 16px; margin: 0 0 8px; }
+  .card p { font-size: 12.5px; line-height: 1.6; color: var(--ink-soft); margin: 0; }
+
+  /* ---------- circulation ---------- */
+  .circulation {
+    background: var(--paper);
+    border: 1px solid var(--paper-line);
+    border-radius: 2px;
+    box-shadow: 0 10px 24px var(--card-shadow);
+    overflow: hidden;
+  }
+
+  .circulation .row { display: grid; grid-template-columns: 130px 1fr; border-bottom: 1px solid var(--paper-line); }
+  .circulation .row:last-child { border-bottom: none; }
+
+  .circulation .row .step {
+    padding: 16px; font-size: 11px; letter-spacing: 0.08em; color: var(--ink-soft);
+    border-right: 1px dashed var(--paper-line); text-transform: uppercase;
+  }
+
+  .circulation .row pre { margin: 0; padding: 16px; font-size: 13px; overflow-x: auto; color: var(--ink); white-space: pre-wrap; }
+
+  @media (max-width: 560px) {
+    .circulation .row { grid-template-columns: 1fr; }
+    .circulation .row .step { border-right: none; border-bottom: 1px dashed var(--paper-line); }
+  }
+
+  .due-date {
+    margin-top: 64px; background: var(--paper); border: 1px solid var(--paper-line);
+    border-radius: 2px; box-shadow: 0 10px 24px var(--card-shadow);
+  }
+
+  .due-date .title-row {
+    padding: 14px 20px; border-bottom: 1px solid var(--paper-line);
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
+  }
+
+  table.stamps { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.stamps td { padding: 12px 20px; border-bottom: 1px dashed var(--paper-line); }
+  table.stamps tr:last-child td { border-bottom: none; }
+  table.stamps td.k { color: var(--ink-soft); width: 40%; }
+  table.stamps td.v a { text-decoration: none; }
+  table.stamps td.v a:hover { text-decoration: underline; }
+
+  footer { text-align: center; margin-top: 48px; font-size: 11px; color: rgba(237, 228, 205, 0.55); letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+
+<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">
+  Página del proyecto pdfsum: generador de resúmenes de archivos PDF, funcional directamente en el navegador, sin subir el archivo a ningún servidor.
+</span>
+
+<div class="wrap">
+
+  <header>
+    <span class="tab">sala de lectura · resumen de documentos</span>
+    <div class="desk-sheet">
+      <h1>pdfsum</h1>
+      <p class="tagline">
+        Sube un PDF y obtén un resumen con sus oraciones más relevantes,
+        generado aquí mismo, en tu navegador. El archivo nunca sale de tu
+        computadora.
+      </p>
+    </div>
+  </header>
+
+  <section id="resumidor">
+    <div class="section-head">
+      <span class="num">01</span>
+      <h2>Mesa de lectura</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="intake">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Seleccionar archivo PDF">
+        <p id="dropzone-label">Arrastra un PDF aquí o haz clic para elegir un archivo</p>
+        <p class="file-name" id="file-name"></p>
+        <input type="file" id="file-input" accept="application/pdf">
+      </div>
+
+      <div class="mode-tabs" role="tablist">
+        <button type="button" class="mode-tab active" id="tab-extractive" data-mode="extractive" role="tab" aria-selected="true">Extractivo (local)</button>
+        <button type="button" class="mode-tab" id="tab-ai" data-mode="ai" role="tab" aria-selected="false">Con IA (gratis)</button>
+      </div>
+
+      <div class="controls">
+        <div class="control" id="control-extractive">
+          <label for="sentences-range">Oraciones en el resumen</label>
+          <div class="range-row">
+            <input type="range" id="sentences-range" min="3" max="15" value="5">
+            <span id="sentences-out">5</span>
+          </div>
+        </div>
+
+        <div class="control" id="control-ai-length" style="display:none;">
+          <label for="ai-length-select">Extensión del resumen</label>
+          <select id="ai-length-select">
+            <option value="short">Corto (~120 palabras)</option>
+            <option value="medium" selected>Medio (~250 palabras)</option>
+            <option value="long">Largo (~450 palabras)</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label for="language-select">Idioma del documento</label>
+          <select id="language-select">
+            <option value="es" selected>Español</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row-below">
+        <span id="status-text" style="font-size:12px; color: var(--ink-soft);"></span>
+        <button type="button" class="btn primary" id="summarize-btn" disabled>Generar resumen</button>
+      </div>
+
+      <p class="note" id="note-extractive">
+        El PDF se procesa por completo en tu navegador con pdf.js: no se
+        sube a ningún servidor. El algoritmo es extractivo (selecciona
+        las oraciones más relevantes del texto original por frecuencia de
+        palabras, cubriendo todo el documento de principio a fin) y
+        funciona sin conexión a internet una vez cargada la página. PDFs
+        escaneados sin capa de texto no tienen contenido extraíble.
+      </p>
+
+      <p class="note" id="note-ai" style="display:none;">
+        En este modo, el PDF se envía al backend de pdfsum, que genera un
+        resumen abstractivo real (con sus propias palabras, no oraciones
+        copiadas) usando un modelo open-source que corre en el servidor.
+        Es gratis y no necesitas ninguna clave de API. A cambio de la
+        gratuidad, el PDF sí sale de tu navegador hacia ese servidor
+        (a diferencia del modo extractivo, que es 100% local). Para
+        documentos largos, el texto se divide en partes que se resumen
+        por separado y luego se combinan en un solo resumen final.
+      </p>
+    </div>
+
+    <div id="output">
+      <div class="stats-row" id="stats-row"></div>
+      <div class="manuscript" id="manuscript"></div>
+      <div class="output-actions">
+        <button type="button" class="btn small" id="copy-summary-btn">Copiar resumen</button>
+      </div>
+    </div>
+
+    <div id="output-ai" style="display:none; margin-top:22px;">
+      <div class="stats-row" id="stats-row-ai"></div>
+      <div class="manuscript ai-summary" id="ai-summary-box"></div>
+      <div class="output-actions">
+        <button type="button" class="btn small" id="copy-ai-summary-btn">Copiar resumen</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="modulos">
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>Fichero del proyecto</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="catalog">
+      <article class="card">
+        <p class="cat-no">pdfsum / extractor.py</p>
+        <h3>Extracción</h3>
+        <p>Lee el texto y el título de un PDF local con pypdf, del lado del
+        paquete Python.</p>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">pdfsum / summarizer.py</p>
+        <h3>Resumen extractivo</h3>
+        <p>Puntúa oraciones por frecuencia de palabras significativas y
+        selecciona la más representativa de cada tramo del documento, en
+        su orden original.</p>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">pdfsum / cli.py</p>
+        <h3>Línea de comandos</h3>
+        <p>Resume uno o varios PDFs desde la terminal y exporta el
+        resultado a un archivo.</p>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">tests /</p>
+        <h3>Pruebas</h3>
+        <p>Pruebas unitarias del segmentador de oraciones, el cálculo de
+        frecuencias y la extracción de título.</p>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">README.md · LICENSE</p>
+        <h3>Documentación</h3>
+        <p>Guía de instalación, uso por CLI, como librería y licencia
+        MIT.</p>
+      </article>
+
+      <article class="card">
+        <p class="cat-no">index.html</p>
+        <h3>Esta página</h3>
+        <p>Reimplementa summarizer.py en JavaScript y usa pdf.js para leer
+        el PDF directamente en el navegador.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="instalacion">
+    <div class="section-head">
+      <span class="num">03</span>
+      <h2>Tarjeta de circulación (paquete Python)</h2>
+      <span class="rule"></span>
+    </div>
+
+    <div class="circulation">
+      <div class="row">
+        <div class="step">Instalar</div>
+        <pre>pip install -e .</pre>
+      </div>
+      <div class="row">
+        <div class="step">Resumir</div>
+        <pre>pdfsum documento.pdf --sentences 8</pre>
+      </div>
+      <div class="row">
+        <div class="step">Como librería</div>
+        <pre>from pdfsum import extract_text, summarize
+
+texto = extract_text("documento.pdf")
+print(summarize(texto, num_sentences=5))</pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="due-date">
+    <div class="title-row">Enlaces</div>
+    <table class="stamps">
+      <tr>
+        <td class="k">Repositorio</td>
+        <td class="v"><a href="https://github.com/efrabuilder/Pdfsum">github.com/efrabuilder/Pdfsum</a></td>
+      </tr>
+      <tr>
+        <td class="k">Licencia</td>
+        <td class="v">MIT</td>
+      </tr>
+      <tr>
+        <td class="k">Requisitos (paquete Python)</td>
+        <td class="v">Python 3.9+, pypdf</td>
+      </tr>
+    </table>
+  </div>
+
+  <footer>pdfsum — índice del proyecto - © 2026 All rights reserved · Designed &amp; built by Efraín Sebastián Rojas Artavia</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+</script>
+<script>
+(function () {
+  "use strict";
+
+  var STOPWORDS_ES = ["de","la","que","el","en","y","a","los","del","se","las","por","un","para","con","no","una","su","al","lo","como","más","pero","sus","le","ya","o","este","sí","porque","esta","entre","cuando","muy","sin","sobre","también","me","hasta","hay","donde","quien","desde","todo","nos","durante","todos","uno","les","ni","contra","otros","ese","eso","ante","ellos","e","esto","mí","antes","algunos","qué","unos","yo","otro","otras","otra","él","tanto","esa","estos","mucho","quienes","nada","muchos","cual","poco","ella","estar","estas","algunas","algo","nosotros","es","son","fue","ser","han","ha","está"];
+  var STOPWORDS_EN = ["the","a","an","and","or","but","of","to","in","on","for","with","as","by","at","from","is","are","was","were","be","been","being","this","that","these","those","it","its","if","then","than","so","such","not","no","can","will","would","could","should","may","might","must","has","have","had","do","does","did","we","you","they","he","she","his","her","their","our","your","i","which","who","whom","what","when","where","how","there","here","also","into","about","up","out","over","under","again","further","once"];
+
+  function stopwordSet(language) {
+    return new Set(language === "en" ? STOPWORDS_EN : STOPWORDS_ES);
+  }
+
+  function splitSentences(text) {
+    var normalized = text.replace(/\s+/g, " ").trim();
+    if (!normalized) return [];
+    var parts = normalized.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ0-9])/);
+    return parts.map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
+  }
+
+  function tokenize(sentence) {
+    var matches = sentence.toLowerCase().match(/[a-zA-ZáéíóúñÁÉÍÓÚÑüÜ]+/g);
+    return matches || [];
+  }
+
+  function wordFrequencies(sentences, language) {
+    var stopwords = stopwordSet(language);
+    var freq = {};
+    sentences.forEach(function (sentence) {
+      tokenize(sentence).forEach(function (word) {
+        if (stopwords.has(word) || word.length < 3) return;
+        freq[word] = (freq[word] || 0) + 1;
+      });
+    });
+    var values = Object.values(freq);
+    if (values.length === 0) return {};
+    var max = Math.max.apply(null, values);
+    var normalized = {};
+    Object.keys(freq).forEach(function (w) { normalized[w] = freq[w] / max; });
+    return normalized;
+  }
+
+  // Puntúa cada oración solo por frecuencia de palabras significativas.
+  // (Antes había un "positionBonus" que favorecía fuertemente a las
+  // primeras oraciones del documento; eso hacía que en PDFs largos el
+  // resumen terminara siendo casi puro texto del inicio. Se quitó.)
+  function scoreSentences(sentences, language) {
+    var freqs = wordFrequencies(sentences, language);
+    return sentences.map(function (sentence) {
+      var words = tokenize(sentence);
+      if (words.length === 0) return 0;
+      return words.reduce(function (sum, w) { return sum + (freqs[w] || 0); }, 0) / words.length;
+    });
+  }
+
+  // Divide range(total) en `numSegments` tramos contiguos que cubren todo
+  // el documento, lo más parejos posible.
+  function segmentBounds(total, numSegments) {
+    var bounds = [];
+    for (var i = 0; i < numSegments; i++) {
+      var start = Math.floor((i * total) / numSegments);
+      var end = Math.floor(((i + 1) * total) / numSegments);
+      bounds.push([start, end]);
+    }
+    return bounds;
+  }
+
+  function summarize(text, numSentences, language) {
+    var sentences = splitSentences(text);
+    if (sentences.length === 0) return { sentences: [], total: 0 };
+    if (sentences.length <= numSentences) return { sentences: sentences, total: sentences.length };
+
+    var scores = scoreSentences(sentences, language);
+
+    // Toma la oración con mayor puntaje de cada tramo del documento, para
+    // que el resumen cubra de la primera a la última página.
+    var chosen = new Set();
+    segmentBounds(sentences.length, numSentences).forEach(function (bound) {
+      var start = bound[0], end = bound[1];
+      if (start >= end) return;
+      var bestIndex = start;
+      for (var i = start + 1; i < end; i++) {
+        if (scores[i] > scores[bestIndex]) bestIndex = i;
+      }
+      chosen.add(bestIndex);
+    });
+
+    if (chosen.size < numSentences) {
+      var ranked = sentences.map(function (_, i) { return i; })
+        .sort(function (a, b) { return scores[b] - scores[a]; });
+      for (var r = 0; r < ranked.length && chosen.size < numSentences; r++) {
+        chosen.add(ranked[r]);
+      }
+    }
+
+    var topIndices = Array.from(chosen).sort(function (a, b) { return a - b; }).slice(0, numSentences);
+    return { sentences: topIndices.map(function (i) { return sentences[i]; }), total: sentences.length };
+  }
+
+  function extractPdfText(arrayBuffer) {
+    return pdfjsLib.getDocument({ data: arrayBuffer }).promise.then(function (pdfDoc) {
+      var pagePromises = [];
+      for (var i = 1; i <= pdfDoc.numPages; i++) {
+        pagePromises.push(
+          pdfDoc.getPage(i).then(function (page) {
+            return page.getTextContent().then(function (content) {
+              return content.items.map(function (item) { return item.str; }).join(" ");
+            });
+          })
+        );
+      }
+      return Promise.all(pagePromises).then(function (pages) { return pages.join("\n\n"); });
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  var dropzone = document.getElementById("dropzone");
+  var fileInput = document.getElementById("file-input");
+  var fileNameEl = document.getElementById("file-name");
+  var dropzoneLabel = document.getElementById("dropzone-label");
+  var sentencesRange = document.getElementById("sentences-range");
+  var sentencesOut = document.getElementById("sentences-out");
+  var languageSelect = document.getElementById("language-select");
+  var summarizeBtn = document.getElementById("summarize-btn");
+  var statusText = document.getElementById("status-text");
+  var outputEl = document.getElementById("output");
+  var statsRow = document.getElementById("stats-row");
+  var manuscript = document.getElementById("manuscript");
+  var copyBtn = document.getElementById("copy-summary-btn");
+
+  var tabExtractive = document.getElementById("tab-extractive");
+  var tabAi = document.getElementById("tab-ai");
+  var controlExtractive = document.getElementById("control-extractive");
+  var controlAiLength = document.getElementById("control-ai-length");
+  var aiLengthSelect = document.getElementById("ai-length-select");
+  var noteExtractive = document.getElementById("note-extractive");
+  var noteAi = document.getElementById("note-ai");
+  var outputAiEl = document.getElementById("output-ai");
+  var statsRowAi = document.getElementById("stats-row-ai");
+  var aiSummaryBox = document.getElementById("ai-summary-box");
+  var copyAiBtn = document.getElementById("copy-ai-summary-btn");
+
+  var currentFile = null;
+  var lastSummary = "";
+  var lastAiSummary = "";
+  var summaryMode = "extractive";
+
+  function setMode(mode) {
+    summaryMode = mode;
+    var isAi = mode === "ai";
+    tabExtractive.classList.toggle("active", !isAi);
+    tabAi.classList.toggle("active", isAi);
+    tabExtractive.setAttribute("aria-selected", String(!isAi));
+    tabAi.setAttribute("aria-selected", String(isAi));
+    controlExtractive.style.display = isAi ? "none" : "flex";
+    controlAiLength.style.display = isAi ? "flex" : "none";
+    noteExtractive.style.display = isAi ? "none" : "block";
+    noteAi.style.display = isAi ? "block" : "none";
+    statusText.textContent = "";
+  }
+  tabExtractive.addEventListener("click", function () { setMode("extractive"); });
+  tabAi.addEventListener("click", function () { setMode("ai"); });
+
+  // URL del backend gratuito de pdfsum (ver backend/README.md para
+  // desplegarlo gratis en Hugging Face Spaces). Edita esta línea después
+  // de desplegar tu propia instancia.
+  var BACKEND_URL = window.PDFSUM_BACKEND_URL || "https://TU-BACKEND.example.com";
+
+  function callBackend(file, language, lengthKey) {
+    var formData = new FormData();
+    formData.append("file", file);
+    formData.append("language", language);
+    formData.append("length", lengthKey);
+
+    return fetch(BACKEND_URL.replace(/\/$/, "") + "/api/summarize", {
+      method: "POST",
+      body: formData
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return null; }).then(function (body) {
+          var detail = body && body.detail ? body.detail : ("HTTP " + res.status);
+          throw new Error(detail);
+        });
+      }
+      return res.json();
+    });
+  }
+
+  sentencesRange.addEventListener("input", function () {
+    sentencesOut.textContent = sentencesRange.value;
+  });
+
+  dropzone.addEventListener("click", function () { fileInput.click(); });
+  dropzone.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+  });
+
+  ["dragenter", "dragover"].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      dropzone.classList.add("drag");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      dropzone.classList.remove("drag");
+    });
+  });
+  dropzone.addEventListener("drop", function (e) {
+    var files = e.dataTransfer.files;
+    if (files && files.length > 0) setFile(files[0]);
+  });
+  fileInput.addEventListener("change", function (e) {
+    if (e.target.files && e.target.files.length > 0) setFile(e.target.files[0]);
+  });
+
+  function setFile(file) {
+    if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+      statusText.textContent = "Ese archivo no parece ser un PDF.";
+      return;
+    }
+    currentFile = file;
+    fileNameEl.textContent = file.name;
+    dropzoneLabel.textContent = "Archivo listo. Puedes elegir otro si quieres.";
+    summarizeBtn.disabled = false;
+    statusText.textContent = "";
+  }
+
+  function runExtractive(text, language) {
+    var numSentences = parseInt(sentencesRange.value, 10);
+    var result = summarize(text, numSentences, language);
+
+    var wordCount = (text.match(/\S+/g) || []).length;
+    statsRow.innerHTML =
+      '<div class="stat"><b>' + result.total + '</b><span>oraciones totales</span></div>' +
+      '<div class="stat"><b>' + result.sentences.length + '</b><span>seleccionadas</span></div>' +
+      '<div class="stat"><b>' + wordCount.toLocaleString() + '</b><span>palabras en el documento</span></div>';
+
+    manuscript.innerHTML = result.sentences.map(function (s, i) {
+      return '<div class="highlight-line"><span class="tag">' + (i + 1) + '</span><p class="txt"><mark>' + escapeHtml(s) + '</mark></p></div>';
+    }).join("");
+
+    lastSummary = result.sentences.join(" ");
+    outputAiEl.style.display = "none";
+    outputEl.style.display = "block";
+  }
+
+  function runAi(file, language) {
+    var lengthKey = aiLengthSelect.value;
+    statusText.textContent = language === "en" ? "Generating a free AI summary…" : "Generando resumen con IA gratis…";
+
+    return callBackend(file, language, lengthKey).then(function (data) {
+      var summaryText = data.summary;
+      var summaryWordCount = (summaryText.match(/\S+/g) || []).length;
+      statsRowAi.innerHTML =
+        '<div class="stat"><b>' + (data.documentWordCount || 0).toLocaleString() + '</b><span>palabras en el documento</span></div>' +
+        '<div class="stat"><b>' + summaryWordCount + '</b><span>palabras en el resumen</span></div>' +
+        '<div class="stat"><b>' + (data.model || "modelo local") + '</b><span>modelo</span></div>';
+
+      aiSummaryBox.innerHTML = summaryText.split(/\n{2,}/).map(function (p) {
+        return "<p>" + escapeHtml(p) + "</p>";
+      }).join("");
+
+      lastAiSummary = summaryText;
+      outputEl.style.display = "none";
+      outputAiEl.style.display = "block";
+    });
+  }
+
+  summarizeBtn.addEventListener("click", function () {
+    if (!currentFile) return;
+
+    summarizeBtn.disabled = true;
+    summarizeBtn.textContent = "Procesando…";
+    statusText.textContent = "";
+    outputEl.style.display = "none";
+    outputAiEl.style.display = "none";
+
+    var language = languageSelect.value;
+    var done = function () {
+      statusText.textContent = "Listo.";
+      summarizeBtn.disabled = false;
+      summarizeBtn.textContent = "Generar resumen";
+    };
+    var failed = function (err) {
+      statusText.textContent = (err && err.message) || "No se pudo generar el resumen.";
+      summarizeBtn.disabled = false;
+      summarizeBtn.textContent = "Generar resumen";
+    };
+
+    if (summaryMode === "ai") {
+      // El backend recibe el PDF directamente y hace su propia extracción.
+      runAi(currentFile, language).then(done).catch(failed);
+      return;
+    }
+
+    // Modo extractivo: todo ocurre en el navegador con pdf.js, nada se sube.
+    if (!window.pdfjsLib) {
+      statusText.textContent = "No se pudo cargar el lector de PDF (pdf.js).";
+      summarizeBtn.disabled = false;
+      summarizeBtn.textContent = "Generar resumen";
+      return;
+    }
+    statusText.textContent = "Leyendo PDF…";
+    var reader = new FileReader();
+    reader.onload = function () {
+      extractPdfText(reader.result).then(function (text) {
+        if (!text.trim()) {
+          throw new Error("No se pudo extraer texto de este PDF (puede ser un escaneo sin capa de texto).");
+        }
+        statusText.textContent = "Generando resumen…";
+        runExtractive(text, language);
+      }).then(done).catch(failed);
+    };
+    reader.onerror = function () { failed(new Error("No se pudo leer el archivo.")); };
+    reader.readAsArrayBuffer(currentFile);
+  });
+
+  function wireCopyButton(button, getText) {
+    button.addEventListener("click", function () {
+      var text = getText();
+      if (!text) return;
+      var done = function () {
+        var original = button.textContent;
+        button.textContent = "Copiado";
+        setTimeout(function () { button.textContent = original; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(done);
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+        done();
+      }
+    });
+  }
+  wireCopyButton(copyBtn, function () { return lastSummary; });
+  wireCopyButton(copyAiBtn, function () { return lastAiSummary; });
+})();
+</script>
+</body>
+</html>
