@@ -1,0 +1,20 @@
+[
+  "tests/test_extractor.py::test_extract_text_missing_file_raises",
+  "tests/test_extractor.py::test_extract_text_returns_page_content",
+  "tests/test_extractor.py::test_extract_title_falls_back_to_filename",
+  "tests/test_extractor.py::test_extract_title_uses_metadata",
+  "tests/test_summarizer.py::test_score_sentences_length_matches_input",
+  "tests/test_summarizer.py::test_split_sentences_basic",
+  "tests/test_summarizer.py::test_split_sentences_collapses_whitespace",
+  "tests/test_summarizer.py::test_split_sentences_empty",
+  "tests/test_summarizer.py::test_summarize_covers_whole_document_not_just_start",
+  "tests/test_summarizer.py::test_summarize_empty_text",
+  "tests/test_summarizer.py::test_summarize_preserves_original_order",
+  "tests/test_summarizer.py::test_summarize_respects_num_sentences",
+  "tests/test_summarizer.py::test_summarize_returns_all_when_fewer_than_requested",
+  "tests/test_summarizer.py::test_tokenize_empty_sentence",
+  "tests/test_summarizer.py::test_tokenize_lowercases_and_strips_punctuation",
+  "tests/test_summarizer.py::test_word_frequencies_empty_input",
+  "tests/test_summarizer.py::test_word_frequencies_english_stopwords",
+  "tests/test_summarizer.py::test_word_frequencies_ignores_stopwords_and_short_words"
+]
